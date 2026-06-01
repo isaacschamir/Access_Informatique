@@ -1,0 +1,460 @@
+<?php
+/**
+ * setup_admin.php — Gestion des comptes administrateurs (CLI uniquement)
+ * -----------------------------------------------------------------------
+ * Copier ce fichier vers setup_admin.php avant utilisation :
+ *   copy database\setup_admin.php.example database\setup_admin.php
+ *
+ * Puis exécuter depuis la racine du projet :
+ *   php database/setup_admin.php
+ *   php database/setup_admin.php list
+ *   php database/setup_admin.php create --email=... --name=... --password=...
+ *   php database/setup_admin.php password --email=... --password=...
+ *   php database/setup_admin.php email --email=... --new-email=...
+ *   php database/setup_admin.php name --email=... --name=...
+ *   php database/setup_admin.php delete --email=...
+ *
+ * SÉCURITÉ : ne jamais laisser setup_admin.php accessible via Apache.
+ *            Supprimer le fichier du serveur après usage.
+ *            Conserver une copie locale hors du dépôt git.
+ * -----------------------------------------------------------------------
+ */
+
+declare(strict_types=1);
+
+// ── Blocage accès web ───────────────────────────────────────────────────────
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    exit("Accès interdit. Ce script ne s'exécute qu'en ligne de commande (CLI).\n");
+}
+
+// ── Chemins projet ──────────────────────────────────────────────────────────
+$projectRoot = dirname(__DIR__);
+$backendDir  = $projectRoot . '/backend';
+
+if (!is_file($backendDir . '/includes/config.php')) {
+    fwrite(STDERR, "Erreur : backend/includes/config.php introuvable.\n");
+    fwrite(STDERR, "Exécutez ce script depuis la racine du projet Access_Informatique.\n");
+    exit(1);
+}
+
+require_once $backendDir . '/includes/config.php';
+require_once $backendDir . '/includes/db.php';
+
+// ── Constantes ────────────────────────────────────────────────────────────────
+const MIN_PASSWORD_LENGTH = 10;
+
+// ── Point d'entrée ────────────────────────────────────────────────────────────
+try {
+    $pdo = get_db();
+    $args = parse_cli_args($argv);
+
+    if (isset($args['help']) || isset($args['h'])) {
+        print_help();
+        exit(0);
+    }
+
+    $command = $args['_command'] ?? 'menu';
+
+    match ($command) {
+        'list'     => cmd_list($pdo),
+        'create'   => cmd_create($pdo, $args),
+        'password' => cmd_password($pdo, $args),
+        'email'    => cmd_email($pdo, $args),
+        'name'     => cmd_name($pdo, $args),
+        'delete'   => cmd_delete($pdo, $args),
+        'menu'     => run_interactive_menu($pdo),
+        default    => throw new InvalidArgumentException(
+            "Commande inconnue : {$command}. Utilisez --help pour l'aide."
+        ),
+    };
+} catch (PDOException $e) {
+    fwrite(STDERR, "\nErreur base de données : " . $e->getMessage() . "\n");
+    fwrite(STDERR, "Vérifiez backend/.env (DB_HOST, DB_NAME, DB_USER, DB_PASS).\n");
+    exit(1);
+} catch (Throwable $e) {
+    fwrite(STDERR, "\nErreur : " . $e->getMessage() . "\n");
+    exit(1);
+}
+
+// =============================================================================
+// Commandes
+// =============================================================================
+
+function cmd_list(PDO $pdo): void
+{
+    $rows = $pdo->query(
+        'SELECT id, name, email, created_at, updated_at FROM admins ORDER BY id ASC'
+    )->fetchAll();
+
+    if (empty($rows)) {
+        echo "Aucun administrateur en base.\n";
+        echo "Créez-en un : php database/setup_admin.php create\n";
+        return;
+    }
+
+    echo "\nAdministrateurs (" . count($rows) . ") :\n";
+    echo str_repeat('-', 72) . "\n";
+    printf("  %-4s %-22s %-32s %s\n", 'ID', 'Nom', 'Email', 'Créé le');
+    echo str_repeat('-', 72) . "\n";
+
+    foreach ($rows as $row) {
+        printf(
+            "  %-4d %-22s %-32s %s\n",
+            (int) $row['id'],
+            truncate((string) $row['name'], 22),
+            truncate((string) $row['email'], 32),
+            substr((string) $row['created_at'], 0, 10)
+        );
+    }
+    echo str_repeat('-', 72) . "\n\n";
+}
+
+function cmd_create(PDO $pdo, array $args): void
+{
+    $email    = prompt_value('Email', $args['email'] ?? null, 'validate_email');
+    $name     = prompt_value('Nom complet', $args['name'] ?? null);
+    $password = prompt_password('Mot de passe', $args['password'] ?? null);
+
+    if (admin_exists_by_email($pdo, $email)) {
+        throw new RuntimeException("Un admin existe déjà avec l'email : {$email}");
+    }
+
+    $hash = password_hash($password, PASSWORD_BCRYPT);
+    $stmt = $pdo->prepare(
+        'INSERT INTO admins (name, email, password_hash) VALUES (?, ?, ?)'
+    );
+    $stmt->execute([$name, $email, $hash]);
+
+    echo "\n✓ Administrateur créé (ID " . $pdo->lastInsertId() . ").\n";
+    echo "  Email : {$email}\n";
+    echo "  Connexion : /admin/login sur le frontend\n\n";
+}
+
+function cmd_password(PDO $pdo, array $args): void
+{
+    $email    = prompt_value('Email de l\'admin', $args['email'] ?? null, 'validate_email');
+    $admin    = require_admin($pdo, $email);
+    $password = prompt_password('Nouveau mot de passe', $args['password'] ?? null);
+
+    $hash = password_hash($password, PASSWORD_BCRYPT);
+    $pdo->prepare('UPDATE admins SET password_hash = ? WHERE id = ?')
+        ->execute([$hash, $admin['id']]);
+
+    echo "\n✓ Mot de passe mis à jour pour {$email}.\n\n";
+}
+
+function cmd_email(PDO $pdo, array $args): void
+{
+    $email    = prompt_value('Email actuel', $args['email'] ?? null, 'validate_email');
+    $admin    = require_admin($pdo, $email);
+    $newEmail = prompt_value('Nouvel email', $args['new-email'] ?? $args['new_email'] ?? null, 'validate_email');
+
+    if (strcasecmp($email, $newEmail) === 0) {
+        throw new RuntimeException('Le nouvel email est identique à l\'actuel.');
+    }
+    if (admin_exists_by_email($pdo, $newEmail)) {
+        throw new RuntimeException("L'email {$newEmail} est déjà utilisé.");
+    }
+
+    $pdo->prepare('UPDATE admins SET email = ? WHERE id = ?')
+        ->execute([$newEmail, $admin['id']]);
+
+    echo "\n✓ Email modifié : {$email} → {$newEmail}\n\n";
+}
+
+function cmd_name(PDO $pdo, array $args): void
+{
+    $email = prompt_value('Email de l\'admin', $args['email'] ?? null, 'validate_email');
+    $admin = require_admin($pdo, $email);
+    $name  = prompt_value('Nouveau nom', $args['name'] ?? null);
+
+    $pdo->prepare('UPDATE admins SET name = ? WHERE id = ?')
+        ->execute([$name, $admin['id']]);
+
+    echo "\n✓ Nom mis à jour pour {$email} : {$name}\n\n";
+}
+
+function cmd_delete(PDO $pdo, array $args): void
+{
+    $email = prompt_value('Email à supprimer', $args['email'] ?? null, 'validate_email');
+    $admin = require_admin($pdo, $email);
+
+    $total = (int) $pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
+    if ($total <= 1) {
+        throw new RuntimeException(
+            'Impossible de supprimer le dernier administrateur. Créez-en un autre d\'abord.'
+        );
+    }
+
+    if (!confirm("Supprimer définitivement l'admin « {$admin['name']} » ({$email}) ?", $args)) {
+        echo "Annulé.\n";
+        return;
+    }
+
+    $pdo->prepare('DELETE FROM admins WHERE id = ?')->execute([$admin['id']]);
+    echo "\n✓ Administrateur supprimé.\n\n";
+}
+
+// =============================================================================
+// Menu interactif
+// =============================================================================
+
+function run_interactive_menu(PDO $pdo): void
+{
+    echo "\n";
+    echo "╔══════════════════════════════════════════════════════════╗\n";
+    echo "║     Access Informatique — Gestion des administrateurs    ║\n";
+    echo "╚══════════════════════════════════════════════════════════╝\n";
+    echo "  Base : " . DB_NAME . " @ " . DB_HOST . "\n\n";
+
+    while (true) {
+        echo "  1) Lister les administrateurs\n";
+        echo "  2) Créer un administrateur\n";
+        echo "  3) Changer un mot de passe\n";
+        echo "  4) Changer un email\n";
+        echo "  5) Changer un nom\n";
+        echo "  6) Supprimer un administrateur\n";
+        echo "  0) Quitter\n";
+        echo "\n";
+
+        $choice = trim(read_line('Choix : '));
+
+        if (in_array($choice, ['0', 'q', 'quit', 'exit'], true)) {
+            break;
+        }
+
+        try {
+            match ($choice) {
+                '1' => cmd_list($pdo),
+                '2' => cmd_create($pdo, []),
+                '3' => cmd_password($pdo, []),
+                '4' => cmd_email($pdo, []),
+                '5' => cmd_name($pdo, []),
+                '6' => cmd_delete($pdo, []),
+                default => print("\nChoix invalide.\n\n"),
+            };
+        } catch (Throwable $e) {
+            fwrite(STDERR, "\n✗ " . $e->getMessage() . "\n\n");
+        }
+    }
+
+    echo "Au revoir.\n";
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+function parse_cli_args(array $argv): array
+{
+    $parsed = ['_command' => 'menu'];
+
+    if (count($argv) <= 1) {
+        return $parsed;
+    }
+
+    $first = strtolower($argv[1]);
+    if (in_array($first, ['help', '-h', '--help'], true)) {
+        $parsed['help'] = true;
+        return $parsed;
+    }
+
+    $commands = ['list', 'create', 'password', 'email', 'name', 'delete'];
+    if (in_array($first, $commands, true)) {
+        $parsed['_command'] = $first;
+    } else {
+        throw new InvalidArgumentException("Commande inconnue : {$argv[1]}");
+    }
+
+    for ($i = 2; $i < count($argv); $i++) {
+        $arg = $argv[$i];
+        if (str_starts_with($arg, '--')) {
+            $eq = strpos($arg, '=');
+            if ($eq !== false) {
+                $key = substr($arg, 2, $eq - 2);
+                $val = substr($arg, $eq + 1);
+            } else {
+                $key = substr($arg, 2);
+                $val = ($argv[$i + 1] ?? null) && !str_starts_with($argv[$i + 1], '--')
+                    ? $argv[++$i]
+                    : '1';
+            }
+            $parsed[$key] = $val;
+        }
+    }
+
+    return $parsed;
+}
+
+function print_help(): void
+{
+    echo <<<HELP
+
+Access Informatique — setup_admin.php (CLI uniquement)
+
+Usage :
+  php database/setup_admin.php                    Menu interactif
+  php database/setup_admin.php list               Lister les admins
+  php database/setup_admin.php create             Créer un admin
+  php database/setup_admin.php password           Changer le mot de passe
+  php database/setup_admin.php email              Changer l'email
+  php database/setup_admin.php name               Changer le nom affiché
+  php database/setup_admin.php delete             Supprimer un admin
+
+Options (exemples) :
+  --email=admin@accessinformatique.com
+  --new-email=nouveau@accessinformatique.com
+  --name="Jean Dupont"
+  --password="MonMotDePasseSecurise!"
+  --yes                         Confirmer sans question (delete)
+
+Mot de passe : minimum {MIN_PASSWORD_LENGTH} caractères.
+Après usage : supprimer setup_admin.php du serveur web.
+
+HELP;
+}
+
+function prompt_value(string $label, ?string $value, ?string $validator = null): string
+{
+    if ($value !== null && $value !== '') {
+        $value = trim($value);
+        if ($validator === 'validate_email') {
+            validate_email($value);
+        }
+        return $value;
+    }
+
+    while (true) {
+        $input = trim(read_line("{$label} : "));
+        if ($input === '') {
+            echo "  → Ce champ est obligatoire.\n";
+            continue;
+        }
+        if ($validator === 'validate_email') {
+            try {
+                validate_email($input);
+            } catch (InvalidArgumentException $e) {
+                echo '  → ' . $e->getMessage() . "\n";
+                continue;
+            }
+        }
+        return $input;
+    }
+}
+
+function prompt_password(string $label, ?string $value): string
+{
+    if ($value !== null && $value !== '') {
+        validate_password($value);
+        return $value;
+    }
+
+    while (true) {
+        echo "{$label} (min. " . MIN_PASSWORD_LENGTH . " car.) : ";
+        $input = read_password_line();
+        if ($input === '') {
+            echo "  → Le mot de passe est obligatoire.\n";
+            continue;
+        }
+        try {
+            validate_password($input);
+        } catch (InvalidArgumentException $e) {
+            echo '  → ' . $e->getMessage() . "\n";
+            continue;
+        }
+
+        echo 'Confirmer le mot de passe : ';
+        $confirm = read_password_line();
+        if (!hash_equals($input, $confirm)) {
+            echo "  → Les mots de passe ne correspondent pas.\n";
+            continue;
+        }
+
+        return $input;
+    }
+}
+
+/** Lecture masquée si possible (Windows : caractères visibles). */
+function read_password_line(): string
+{
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' && function_exists('sapi_windows_cp_set')) {
+        // Pas de masquage fiable sous Windows en CLI — saisie visible
+        return rtrim(fgets(STDIN) ?: '', "\r\n");
+    }
+
+    if (function_exists('readline') && stream_isatty(STDIN)) {
+        // readline n'efface pas non plus sur tous les OS ; fallback fgets
+        return rtrim(fgets(STDIN) ?: '', "\r\n");
+    }
+
+    return rtrim(fgets(STDIN) ?: '', "\r\n");
+}
+
+function validate_email(string $email): void
+{
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('Adresse email invalide.');
+    }
+    if (strlen($email) > 150) {
+        throw new InvalidArgumentException('Email trop long (max 150 caractères).');
+    }
+}
+
+function validate_password(string $password): void
+{
+    if (strlen($password) < MIN_PASSWORD_LENGTH) {
+        throw new InvalidArgumentException(
+            'Mot de passe trop court (minimum ' . MIN_PASSWORD_LENGTH . ' caractères).'
+        );
+    }
+}
+
+function admin_exists_by_email(PDO $pdo, string $email): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM admins WHERE email = ? LIMIT 1');
+    $stmt->execute([$email]);
+    return (bool) $stmt->fetchColumn();
+}
+
+function require_admin(PDO $pdo, string $email): array
+{
+    $stmt = $pdo->prepare('SELECT id, name, email FROM admins WHERE email = ? LIMIT 1');
+    $stmt->execute([$email]);
+    $admin = $stmt->fetch();
+    if (!$admin) {
+        throw new RuntimeException("Aucun administrateur avec l'email : {$email}");
+    }
+    return $admin;
+}
+
+function confirm(string $message, array $args): bool
+{
+    if (isset($args['yes']) || isset($args['y'])) {
+        return true;
+    }
+    $answer = strtolower(trim(read_line("{$message} [o/N] : ")));
+    return in_array($answer, ['o', 'oui', 'y', 'yes'], true);
+}
+
+function truncate(string $s, int $max): string
+{
+    return strlen($s) <= $max ? $s : substr($s, 0, $max - 1) . '…';
+}
+
+/** Saisie CLI (readline si disponible, sinon fgets). */
+function read_line(string $prompt): string
+{
+    if (function_exists('readline')) {
+        $line = readline($prompt);
+        if ($line !== false && $line !== '') {
+            readline_add_history($line);
+        }
+        return $line !== false ? $line : '';
+    }
+
+    echo $prompt;
+    $line = fgets(STDIN);
+    return $line !== false ? rtrim($line, "\r\n") : '';
+}

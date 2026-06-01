@@ -45,7 +45,7 @@
           </div>
 
           <!-- Formulaire -->
-          <div class="p-8 md:p-12 space-y-8">
+          <form class="p-8 md:p-12 space-y-8" @submit.prevent="handleSubmit">
             <!-- Infos personnelles -->
             <div>
               <h3
@@ -135,12 +135,13 @@
                     class="px-4 py-3 rounded-xl border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/10 outline-none transition-all text-slate-800 bg-white appearance-none cursor-pointer"
                   >
                     <option value="" disabled>Sélectionnez une formation</option>
-                    <option value="Développement Web Full Stack">Développement Web Full Stack — 150 000 FCFA</option>
-                    <option value="Bureautique Professionnelle">Bureautique Professionnelle — 60 000 FCFA</option>
-                    <option value="Design Graphique & UI/UX">Design Graphique &amp; UI/UX — 120 000 FCFA</option>
-                    <option value="Cybersécurité & Réseaux">Cybersécurité &amp; Réseaux — 180 000 FCFA</option>
-                    <option value="Intelligence Artificielle">Intelligence Artificielle — 200 000 FCFA</option>
-                    <option value="Marketing Digital">Marketing Digital — 80 000 FCFA</option>
+                    <option
+                      v-for="f in formationOptions"
+                      :key="f.slug"
+                      :value="f.title"
+                    >
+                      {{ f.title }} — {{ f.price }}
+                    </option>
                   </select>
                 </div>
 
@@ -200,7 +201,7 @@
             <!-- Bouton submit -->
             <div class="pt-2">
               <button
-                @click="handleSubmit"
+                type="submit"
                 :disabled="isSubmitting"
                 class="w-full group inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-green-600 hover:bg-green-500 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-lg transition-all duration-300 shadow-xl shadow-green-600/20 hover:-translate-y-1"
               >
@@ -240,7 +241,7 @@
                 En soumettant ce formulaire, vous acceptez d'être contacté par notre équipe.
               </p>
             </div>
-          </div>
+          </form>
         </div>
 
         <!-- Message de succès -->
@@ -307,7 +308,10 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/services/api'
+
+const route = useRoute()
 
 const form = reactive({
   prenom:    '',
@@ -316,10 +320,19 @@ const form = reactive({
   telephone: '',
   ville:     '',
   formation: '',
-  format:    '',
-  niveau:    '',
+  format:    'Présentiel',
+  niveau:    'Débutant',
   message:   '',
 })
+
+const formationOptions = ref([
+  { slug: 'developpement-web-full-stack', title: 'Développement Web Full Stack', price: '150 000 FCFA' },
+  { slug: 'bureautique-professionnelle', title: 'Bureautique Professionnelle', price: '60 000 FCFA' },
+  { slug: 'design-graphique-ui-ux', title: 'Design Graphique & UI/UX', price: '120 000 FCFA' },
+  { slug: 'cybersecurite-reseaux', title: 'Cybersécurité & Réseaux', price: '180 000 FCFA' },
+  { slug: 'intelligence-artificielle', title: 'Intelligence Artificielle', price: '200 000 FCFA' },
+  { slug: 'marketing-digital', title: 'Marketing Digital', price: '80 000 FCFA' },
+])
 
 const isSubmitting = ref(false)
 const submitted    = ref(false)
@@ -328,7 +341,30 @@ const apiError     = ref('')
 const successPrenom = ref('')
 const successEmail  = ref('')
 
-onMounted(() => { window.scrollTo({ top: 0, behavior: 'instant' }) })
+onMounted(async () => {
+  window.scrollTo({ top: 0, behavior: 'instant' })
+
+  try {
+    const { data } = await api.get('/formations')
+    if (Array.isArray(data) && data.length > 0) {
+      formationOptions.value = data.map((f) => ({
+        slug:  f.slug,
+        title: f.title,
+        price: f.price,
+      }))
+    }
+  } catch {
+    /* garde la liste statique de secours */
+  }
+
+  const slug = typeof route.query.formation === 'string' ? route.query.formation : ''
+  if (slug) {
+    const match = formationOptions.value.find((f) => f.slug === slug)
+    if (match) {
+      form.formation = match.title
+    }
+  }
+})
 
 const handleSubmit = async () => {
   apiError.value = ''

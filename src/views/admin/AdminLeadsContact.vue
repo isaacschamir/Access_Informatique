@@ -72,6 +72,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
 
       <!-- Pagination -->
       <div v-if="lastPage > 1" class="flex items-center justify-between px-6 py-4 border-t border-slate-100">

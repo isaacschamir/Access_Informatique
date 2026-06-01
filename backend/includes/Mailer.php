@@ -2,59 +2,87 @@
 /**
  * Mailer.php
  * ---------------------------------------------------------------
- * Wrapper centralisé autour de PHPMailer.
- * Toutes les notifications email du site passent par cette classe.
+ * Wrapper centralisé autour de PHPMailer (SMTP).
  *
- * Prérequis : exécuter "composer install" dans backend/
+ * Configuration : backend/.env (voir backend/.env.example et MAIL_SETUP.md)
+ * Prérequis       : composer install dans backend/
+ * Test            : php backend/scripts/test_mail.php
  * ---------------------------------------------------------------
  */
 
 declare(strict_types=1);
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as PHPMailerException;
-
-// Chargement de l'autoloader Composer
-require_once dirname(__DIR__) . '/vendor/autoload.php';
-
 class Mailer
 {
+    private static function ensureLoaded(): bool
+    {
+        static $loaded = null;
+        if ($loaded !== null) {
+            return $loaded;
+        }
+        $autoload = dirname(__DIR__) . '/vendor/autoload.php';
+        if (!is_file($autoload)) {
+            error_log('[Mailer] vendor/autoload.php introuvable — exécutez : cd backend && composer install');
+            $loaded = false;
+            return false;
+        }
+        require_once $autoload;
+        $loaded = true;
+        return true;
+    }
+
+    /**
+     * Vérifie que les paramètres SMTP minimaux sont renseignés dans .env
+     */
+    public static function isConfigured(): bool
+    {
+        return MAIL_USERNAME !== ''
+            && MAIL_PASSWORD !== ''
+            && MAIL_ADMIN !== ''
+            && filter_var(MAIL_ADMIN, FILTER_VALIDATE_EMAIL);
+    }
+
     /**
      * Envoie un email HTML via SMTP.
      *
-     * @param string $to_email  Adresse email du destinataire
-     * @param string $to_name   Nom du destinataire
-     * @param string $subject   Objet de l'email
-     * @param string $html_body Corps HTML
-     * @return bool             true si envoyé avec succès
+     * @param string      $to_email       Destinataire
+     * @param string      $to_name        Nom du destinataire
+     * @param string      $subject        Objet
+     * @param string      $html_body      Corps HTML
+     * @param string|null $reply_to_email Répondre à (ex. email du visiteur)
+     * @param string|null $reply_to_name  Nom pour Reply-To
      */
     public static function send(
         string $to_email,
         string $to_name,
         string $subject,
-        string $html_body
+        string $html_body,
+        ?string $reply_to_email = null,
+        ?string $reply_to_name = null
     ): bool {
-        $mail = new PHPMailer(true);
+        if (!self::ensureLoaded()) {
+            return false;
+        }
+
+        if (!self::isConfigured()) {
+            error_log('[Mailer] SMTP non configuré — renseignez MAIL_USERNAME, MAIL_PASSWORD et MAIL_ADMIN dans backend/.env');
+            return false;
+        }
+
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
 
         try {
-            // ---- Configuration SMTP ----
-            $mail->isSMTP();
-            $mail->Host       = MAIL_HOST;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = MAIL_USERNAME;
-            $mail->Password   = MAIL_PASSWORD;
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = MAIL_PORT;
-            $mail->CharSet    = 'UTF-8';
+            self::applySmtpConfig($mail);
 
-            // ---- Expéditeur ----
             $mail->setFrom(MAIL_FROM, MAIL_FROM_NAME);
-            $mail->addReplyTo(MAIL_FROM, MAIL_FROM_NAME);
 
-            // ---- Destinataire ----
+            if ($reply_to_email !== null && $reply_to_email !== '' && filter_var($reply_to_email, FILTER_VALIDATE_EMAIL)) {
+                $mail->addReplyTo($reply_to_email, $reply_to_name ?? '');
+            } else {
+                $mail->addReplyTo(MAIL_FROM, MAIL_FROM_NAME);
+            }
+
             $mail->addAddress($to_email, $to_name);
-
-            // ---- Contenu ----
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body    = $html_body;
@@ -63,27 +91,63 @@ class Mailer
             $mail->send();
             return true;
 
-        } catch (PHPMailerException $e) {
-            error_log('[Mailer] Erreur envoi vers ' . $to_email . ' : ' . $mail->ErrorInfo);
+        } catch (\PHPMailer\PHPMailer\Exception $e) {
+            error_log('[Mailer] Échec vers ' . $to_email . ' : ' . $mail->ErrorInfo);
             return false;
         }
     }
 
     /**
-     * Envoie une notification email à l'administrateur du site.
-     * Utilisé pour tous les formulaires du site.
+     * Notification à l'adresse MAIL_ADMIN (formulaires contact / inscription).
+     *
+     * @param string|null $reply_to_email Email du visiteur pour « Répondre »
+     * @param string|null $reply_to_name  Nom du visiteur
      */
-    public static function notifyAdmin(string $subject, string $html_body): bool
-    {
-        return self::send(MAIL_ADMIN, MAIL_FROM_NAME, $subject, $html_body);
+    public static function notifyAdmin(
+        string $subject,
+        string $html_body,
+        ?string $reply_to_email = null,
+        ?string $reply_to_name = null
+    ): bool {
+        return self::send(
+            MAIL_ADMIN,
+            MAIL_FROM_NAME,
+            $subject,
+            $html_body,
+            $reply_to_email,
+            $reply_to_name
+        );
     }
 
-    /**
-     * Retourne un template HTML complet pour les emails transactionnels.
-     *
-     * @param string $title   Titre de l'email (affiché en vert)
-     * @param string $content Corps HTML interne
-     */
+    private static function applySmtpConfig(\PHPMailer\PHPMailer\PHPMailer $mail): void
+    {
+        $mail->isSMTP();
+        $mail->Host       = MAIL_HOST;
+        $mail->Port       = MAIL_PORT;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
+        $mail->CharSet    = 'UTF-8';
+        $mail->Timeout    = 30;
+
+        $encryption = MAIL_ENCRYPTION;
+        if ($encryption === 'ssl') {
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+        } elseif ($encryption === 'tls') {
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        } else {
+            $mail->SMTPSecure  = '';
+            $mail->SMTPAutoTLS = false;
+        }
+
+        if (MAIL_DEBUG && defined('APP_ENV') && APP_ENV === 'development') {
+            $mail->SMTPDebug  = 2;
+            $mail->Debugoutput = static function (string $str, int $level): void {
+                error_log('[Mailer SMTP] ' . trim($str));
+            };
+        }
+    }
+
     public static function template(string $title, string $content): string
     {
         $year = date('Y');
@@ -160,17 +224,6 @@ class Mailer
               margin: 16px 0;
               font-size: 14px;
               color: #374151;
-            }
-            .cta-btn {
-              display: inline-block;
-              background: #16a34a;
-              color: #fff;
-              padding: 12px 28px;
-              border-radius: 6px;
-              text-decoration: none;
-              font-weight: 600;
-              font-size: 14px;
-              margin: 20px 0;
             }
             .footer {
               background: #f9fafb;

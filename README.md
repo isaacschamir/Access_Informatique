@@ -6,6 +6,9 @@
 
 **Repository :** https://github.com/isaacschamir/Access_Informatique
 
+> **Administrateur (login, mot de passe, commandes terminal, `.env`)**  
+> Guide détaillé pas à pas : **[database/ADMIN_SETUP.md](database/ADMIN_SETUP.md)**
+
 ---
 
 ## 🏗️ Architecture & Stack Technique
@@ -70,14 +73,15 @@ Access_Informatique/
 │   │   ├── RateLimit.php             # Rate limiting
 │   │   └── Mailer.php                # Email
 │   ├── uploads/                      # User files
-│   ├── .env                          # Environment
+│   ├── .env.example                  # Modèle config (copier vers .env)
 │   ├── .htaccess                     # Apache rules
-│   └── index.php                     # Router
+│   └── composer.json
 ├── database/                         # DB scripts
 │   ├── schema.sql                    # Tables
 │   ├── seeds.sql                     # Initial data
-│   ├── setup_admin.php               # Admin setup
-│   └── debug_login.php               # Debug
+│   ├── ADMIN_SETUP.md                # Guide admin (identifiants, commandes)
+│   ├── setup_admin.php.example       # Script gestion admins (modèle versionné)
+│   └── debug_login.php               # Debug (à supprimer après usage)
 ├── src/                              # Frontend Vue.js
 │   ├── components/
 │   ├── pages/
@@ -168,13 +172,28 @@ id, name, email, phone, formation_id, message, submitted_at
 
 ## 🔐 Authentification
 
-### Admin Default
-```
-Email: admin@accessinformatique.com
-Password: Admin@Access2024!
+### Compte administrateur
+
+Les identifiants **ne sont pas** codés en dur dans le projet : ils sont créés avec le script CLI `database/setup_admin.php` (copié depuis `setup_admin.php.example`).
+
+| Élément | Détail |
+|---------|--------|
+| **Guide complet** | [database/ADMIN_SETUP.md](database/ADMIN_SETUP.md) |
+| **Page de connexion** | http://localhost:5173/admin/login |
+| **Exemple email** | `admin@accessinformatique.com` *(à définir via le script)* |
+| **Mot de passe** | Minimum 10 caractères *(choisi lors du `create`)* |
+
+**Commande rapide (PowerShell, racine du projet) :**
+
+```powershell
+copy database\setup_admin.php.example database\setup_admin.php
+php database/setup_admin.php create --email="admin@accessinformatique.com" --name="Administrateur" --password="Admin@Access2024!"
+php database/setup_admin.php list
 ```
 
-Créer via: `php backend/includes/setup_admin.php`
+Après test sur `/admin/login`, supprimer `database\setup_admin.php` du serveur.
+
+**Fichier `backend/.env` :** optionnel en WAMP local (défauts : `root` / mot de passe vide). Voir [backend/.env.example](backend/.env.example). Détails : [ADMIN_SETUP.md](database/ADMIN_SETUP.md#2-faut-il-un-fichier-backendenv).
 
 ### JWT
 - **Header :** `X-Admin-Token: <jwt>`
@@ -249,32 +268,40 @@ POST   /api/admin/leads/export             # Export CSV
 ```bash
 mysql -u root < database/schema.sql
 mysql -u root access_informatique < database/seeds.sql
-php backend/includes/setup_admin.php
 ```
 
-### 2. Backend Config
+### 2. Compte admin + config backend
+```powershell
+copy backend\.env.example backend\.env
+copy database\setup_admin.php.example database\setup_admin.php
+php database/setup_admin.php create --email="admin@accessinformatique.com" --name="Admin" --password="VotreMotDePasse10+"
+```
+Voir [database/ADMIN_SETUP.md](database/ADMIN_SETUP.md) pour toutes les commandes.
+
+### 3. Backend (permissions uploads)
 ```bash
 cd backend
-# Edit .env with your settings
+# Éditer .env si besoin (MySQL, SMTP, JWT_SECRET)
 chmod 777 uploads/
 ```
 
-### 3. Frontend
+### 4. Frontend
 ```bash
 npm install
 npm run dev
 ```
 
-### 4. Access
+### 5. Access
 - **Site :** http://localhost:5173
-- **Admin :** http://localhost:5173/admin
-- **API :** http://localhost/api
+- **Admin login :** http://localhost:5173/admin/login
+- **API :** http://localhost/Access_Informatique/backend/api/solutions
 
 ---
 
 ## 🖥️ Dashboard Admin
 
-**URL :** http://localhost:5173/admin
+**URL connexion :** http://localhost:5173/admin/login  
+**URL dashboard :** http://localhost:5173/admin/dashboard
 
 **Features :**
 - 📊 Dashboard with stats
@@ -307,10 +334,12 @@ npm run dev
 → Check `Response.php` has `cors_headers()` called
 
 ### Login fails
-```bash
-mysql access_informatique -e "SELECT * FROM users_admins;"
-php backend/includes/setup_admin.php  # recreate
+```powershell
+php database/setup_admin.php list
+copy database\setup_admin.php.example database\setup_admin.php
+php database/setup_admin.php password --email="admin@accessinformatique.com" --password="NouveauMotDePasse10+"
 ```
+Voir [database/ADMIN_SETUP.md](database/ADMIN_SETUP.md).
 
 ### Upload fails
 ```bash

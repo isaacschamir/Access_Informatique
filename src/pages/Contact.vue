@@ -14,20 +14,20 @@
 
       <div class="relative z-10 max-w-5xl mx-auto px-6 text-center">
         <div
-          class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-green-500/30 bg-green-500/10 text-green-600 text-xs font-semibold tracking-widest uppercase mb-8"
+          class="hero-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-green-500/30 bg-green-500/10 text-green-600 text-xs font-semibold tracking-widest uppercase mb-8"
         >
           <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
           Contact & Assistance
         </div>
 
         <h1
-          class="text-3xl sm:text-5xl md:text-7xl font-black text-slate-900 leading-[0.95] tracking-tight mb-10"
+          class="hero-title text-3xl sm:text-5xl md:text-7xl font-black text-slate-900 leading-[0.95] tracking-tight mb-10"
         >
           Parlons de<br />
           <span class="hero-gradient-green">votre projet.</span>
         </h1>
 
-        <p class="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        <p class="hero-copy text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
           Notre équipe vous accompagne dans la conception de vos solutions logicielles, applications
           métiers et systèmes de gestion.
         </p>
@@ -323,5 +323,29 @@ const submitForm = async () => {
 .hero-gradient-green {
   color: #166030;
   font-weight: 700;
+}
+
+.hero-badge {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.1s;
+}
+.hero-title {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.2s;
+}
+.hero-copy {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.35s;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

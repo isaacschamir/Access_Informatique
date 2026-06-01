@@ -71,13 +71,16 @@ define('JWT_SECRET', $_ENV['JWT_SECRET'] ?? 'changeme_not_secure');
 define('JWT_EXPIRY', (int) ($_ENV['JWT_EXPIRY'] ?? 3600));  // en secondes
 
 // ---- Mailer (PHPMailer SMTP) ----
-define('MAIL_HOST',      $_ENV['MAIL_HOST']      ?? 'smtp.gmail.com');
-define('MAIL_PORT',      (int) ($_ENV['MAIL_PORT'] ?? 587));
-define('MAIL_USERNAME',  $_ENV['MAIL_USERNAME']  ?? '');
-define('MAIL_PASSWORD',  $_ENV['MAIL_PASSWORD']  ?? '');
-define('MAIL_FROM',      $_ENV['MAIL_FROM']      ?? 'noreply@accessinformatique.com');
-define('MAIL_FROM_NAME', $_ENV['MAIL_FROM_NAME'] ?? 'Access Informatique');
-define('MAIL_ADMIN',     $_ENV['MAIL_ADMIN']     ?? 'admin@accessinformatique.com');
+define('MAIL_HOST',         $_ENV['MAIL_HOST']         ?? 'smtp.gmail.com');
+define('MAIL_PORT',         (int) ($_ENV['MAIL_PORT'] ?? 587));
+define('MAIL_ENCRYPTION',   strtolower($_ENV['MAIL_ENCRYPTION'] ?? 'tls')); // tls | ssl | none
+define('MAIL_USERNAME',     $_ENV['MAIL_USERNAME']     ?? '');
+// Espaces retirés (mots de passe d'application Gmail souvent copiés avec espaces)
+define('MAIL_PASSWORD',     str_replace(' ', '', $_ENV['MAIL_PASSWORD'] ?? ''));
+define('MAIL_FROM',         $_ENV['MAIL_FROM']         ?? 'noreply@accessinformatique.com');
+define('MAIL_FROM_NAME',    $_ENV['MAIL_FROM_NAME']    ?? 'Access Informatique');
+define('MAIL_ADMIN',        $_ENV['MAIL_ADMIN']        ?? 'admin@accessinformatique.com');
+define('MAIL_DEBUG',        filter_var($_ENV['MAIL_DEBUG'] ?? '0', FILTER_VALIDATE_BOOLEAN));
 
 // ---- Uploads ----
 // Chemin absolu sur le disque où stocker les fichiers uploadés

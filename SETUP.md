@@ -32,17 +32,23 @@ mysql -u root access_informatique < database/schema.sql
 mysql -u root access_informatique < database/seeds.sql
 ```
 
-### Créer le compte administrateur
+### Gérer les comptes administrateur
 
-```bash
-php database/setup_admin.php
+**Documentation complète (identifiants, `.env`, quand supprimer le script, toutes les commandes) :**
+
+→ **[database/ADMIN_SETUP.md](database/ADMIN_SETUP.md)**
+
+Résumé :
+
+```powershell
+copy database\setup_admin.php.example database\setup_admin.php
+php database/setup_admin.php create --email="admin@accessinformatique.com" --name="Admin" --password="VotreMotDePasse10+"
+php database/setup_admin.php list
+# Tester http://localhost:5173/admin/login puis :
+del database\setup_admin.php
 ```
 
-> **Identifiants par défaut :**
-> - Email : `admin@accessinformatique.com`
-> - Mot de passe : `Admin@Access2024!`
->
-> **SUPPRIMER** `database/setup_admin.php` après exécution.
+Sans `backend/.env`, les défauts WAMP (`root`, mot de passe vide) sont souvent suffisants — voir ADMIN_SETUP.md.
 
 ---
 
@@ -50,8 +56,9 @@ php database/setup_admin.php
 
 ### Copier et configurer le fichier .env
 
-```bash
-# Le fichier backend/.env existe déjà — éditer les valeurs réelles :
+```powershell
+copy backend\.env.example backend\.env
+# Puis éditer backend\.env (le fichier .env n'est pas versionné)
 ```
 
 ```ini
@@ -131,15 +138,17 @@ http://localhost:5173/admin/login
 
 ---
 
-## 4. Configuration des emails (Gmail)
+## 4. Configuration des emails (PHPMailer)
 
-Pour que les emails fonctionnent via Gmail :
+**Guide complet :** [backend/MAIL_SETUP.md](backend/MAIL_SETUP.md)
 
-1. Activer la **validation en 2 étapes** sur votre compte Google
-2. Créer un **mot de passe d'application** :
-   - Google Account → Sécurité → Mots de passe des applications
-   - Nommer : "Access Informatique WAMP"
-   - Copier le mot de passe de 16 caractères dans `MAIL_PASSWORD`
+```powershell
+copy backend\.env.example backend\.env
+# Éditer backend\.env (MAIL_USERNAME, MAIL_PASSWORD, MAIL_ADMIN)
+php backend/scripts/test_mail.php
+```
+
+Les messages du formulaire **Contact** arrivent sur l'adresse `MAIL_ADMIN`.
 
 ---
 

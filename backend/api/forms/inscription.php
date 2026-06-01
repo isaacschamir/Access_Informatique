@@ -176,10 +176,15 @@ try {
         HTML
     );
 
-    Mailer::notifyAdmin(
+    $adminMailSent = Mailer::notifyAdmin(
         "Nouvelle inscription — {$formation} — {$prenom} {$nom}",
-        $admin_html
+        $admin_html,
+        $email,
+        "$prenom $nom"
     );
+    if (!$adminMailSent) {
+        error_log('[API/forms/inscription] Notification admin non envoyée (vérifier backend/.env et MAIL_SETUP.md)');
+    }
 
     // ---- Email de confirmation au candidat ----
     $user_html = Mailer::template(

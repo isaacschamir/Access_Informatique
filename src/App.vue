@@ -79,8 +79,16 @@
               {{ link.label }}
             </router-link>
           </li>
-          <!-- CTA contact -->
-          <li class="ml-4">
+          <!-- CTA inscription + contact -->
+          <li class="ml-2">
+            <router-link
+              to="/inscription"
+              class="px-5 py-2 rounded-lg border border-green-600 text-green-600 hover:bg-green-50 font-semibold transition-all duration-200"
+            >
+              S'inscrire
+            </router-link>
+          </li>
+          <li class="ml-2">
             <router-link
               to="/contact"
               class="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold transition-all duration-200 shadow-md shadow-green-600/20 hover:shadow-green-500/30 hover:-translate-y-px"

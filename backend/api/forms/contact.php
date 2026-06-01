@@ -136,7 +136,15 @@ try {
         HTML
     );
 
-    Mailer::notifyAdmin("Nouveau message de contact — {$name}", $admin_html);
+    $adminMailSent = Mailer::notifyAdmin(
+        "Nouveau message de contact — {$name}",
+        $admin_html,
+        $email,
+        $name
+    );
+    if (!$adminMailSent) {
+        error_log('[API/forms/contact] Notification admin non envoyée (vérifier backend/.env et MAIL_SETUP.md)');
+    }
 
     // ---- Email de confirmation au visiteur ----
     $user_html = Mailer::template(

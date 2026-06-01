@@ -1,0 +1,4 @@
+# Empêche l'exécution de scripts PHP via le navigateur (setup_admin, debug_login, etc.)
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>

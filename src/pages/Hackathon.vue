@@ -3,7 +3,7 @@
     <!-- HERO -->
     <section class="relative min-h-screen flex items-center overflow-hidden bg-white">
       <!-- GRID -->
-      <div class="hero-grid absolute inset-0 opacity-40"></div>
+      <div class="hero-grid absolute inset-0 opacity-40 pointer-events-none"></div>
 
       <!-- GLOW -->
       <div
@@ -23,27 +23,27 @@
         <div>
           <!-- BADGE -->
           <div
-            class="inline-flex items-center gap-3 px-5 py-3 rounded-full border border-green-200 bg-green-50 text-green-700 text-xs font-bold uppercase tracking-[0.2em] mb-8"
+            class="hero-badge inline-flex items-center gap-3 px-5 py-3 rounded-full border border-green-200 bg-green-50 text-green-700 text-xs font-bold uppercase tracking-[0.2em] mb-8"
           >
             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             Hackathon Access Informatique
           </div>
 
           <!-- TITLE -->
-          <h1 class="text-3xl sm:text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[0.95]">
+          <h1 class="hero-title text-3xl sm:text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[0.95]">
             Construisons les
             <span class="text-green-600">solutions numériques</span>
             de demain.
           </h1>
 
           <!-- DESCRIPTION -->
-          <p class="mt-8 text-xl text-slate-500 leading-relaxed max-w-2xl">
+          <p class="hero-copy mt-8 text-xl text-slate-500 leading-relaxed max-w-2xl">
             Rejoignez développeurs, designers, étudiants et innovateurs durant 48h de création
             intensive autour des technologies du futur.
           </p>
 
           <!-- CTA -->
-          <div class="flex flex-col sm:flex-row gap-5 mt-10">
+          <div class="hero-ctas flex flex-col sm:flex-row gap-5 mt-10">
             <router-link
               to="/inscription"
               class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-black transition-all duration-300 hover:-translate-y-1 shadow-2xl shadow-green-600/20"
@@ -61,7 +61,7 @@
 
           <!-- STATS -->
           <div
-            class="grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-3xl bg-slate-100 border border-slate-200 mt-5 shadow-xl"
+            class="hero-stats grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-3xl bg-slate-100 border border-slate-200 mt-5 shadow-xl"
           >
             <div v-for="stat in hackathonStats" :key="stat.label" class="bg-white p-6 text-center">
               <div class="text-3xl font-black text-green-600">
@@ -76,7 +76,7 @@
         </div>
 
         <!-- RIGHT -->
-        <div class="relative">
+        <div class="hero-visual relative">
           <div class="absolute inset-0 rounded-[2rem] bg-green-500/10 blur-3xl scale-95"></div>
 
           <div
@@ -290,6 +290,42 @@ onMounted(async () => {
     linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
 
   background-size: 80px 80px;
+}
+
+.hero-badge {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.1s;
+}
+.hero-title {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.2s;
+}
+.hero-copy {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.35s;
+}
+.hero-ctas {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.45s;
+}
+.hero-stats {
+  animation: fadeSlideUp 0.6s ease both;
+  animation-delay: 0.55s;
+}
+.hero-visual {
+  animation: fadeSlideUp 0.7s ease both;
+  animation-delay: 0.3s;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {
