@@ -37,7 +37,7 @@
 
           <div class="hero-ctas flex flex-col sm:flex-row gap-4 mt-10">
             <router-link
-              to="/contact"
+              to="/inscription"
               class="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-green-600 hover:bg-green-500 text-white font-bold transition-all duration-300 shadow-xl shadow-green-600/20 hover:-translate-y-1"
             >
               Commencer maintenant
