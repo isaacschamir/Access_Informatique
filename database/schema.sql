@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
   `name`          VARCHAR(100)  NOT NULL,
   `email`         VARCHAR(150)  NOT NULL,
   `password_hash` VARCHAR(255)  NOT NULL COMMENT 'Haché via password_hash() PHP',
+  `role`          VARCHAR(50)   NOT NULL DEFAULT 'editor' COMMENT 'superadmin|admin|editor',
   `created_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

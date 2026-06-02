@@ -45,10 +45,13 @@ function load_env(string $path): void
             $val = $m[1];
         }
 
-        if ($key !== '' && !array_key_exists($key, $_ENV)) {
-            putenv("$key=$val");
-            $_ENV[$key]    = $val;
-            $_SERVER[$key] = $val;
+        if ($key !== '') {
+            // If the key does not exist, or exists but is empty, override with .env value.
+            if (!array_key_exists($key, $_ENV) || $_ENV[$key] === '') {
+                putenv("$key=$val");
+                $_ENV[$key]    = $val;
+                $_SERVER[$key] = $val;
+            }
         }
     }
 }
@@ -60,6 +63,9 @@ load_env(dirname(__DIR__) . '/.env');
 define('APP_ENV', $_ENV['APP_ENV'] ?? 'production');
 define('APP_URL', rtrim($_ENV['APP_URL'] ?? 'http://localhost/Access_Informatique/backend', '/'));
 
+// Diagnostic minimal pour aider le débogage local (visible dans php_error.log)
+error_log(sprintf('[CONFIG] APP_ENV=%s JWT_SECRET_len=%d', APP_ENV, strlen($_ENV['JWT_SECRET'] ?? '')));
+
 // ---- Base de données ----
 define('DB_HOST', $_ENV['DB_HOST'] ?? '127.0.0.1');
 define('DB_NAME', $_ENV['DB_NAME'] ?? 'access_informatique');
@@ -69,6 +75,24 @@ define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 // ---- JWT (authentification admin) ----
 define('JWT_SECRET', $_ENV['JWT_SECRET'] ?? 'changeme_not_secure');
 define('JWT_EXPIRY', (int) ($_ENV['JWT_EXPIRY'] ?? 3600));  // en secondes
+
+// Sécurité : refuser le démarrage si JWT_SECRET n'est pas configuré en production
+if (APP_ENV !== 'development') {
+    $weak = (
+        JWT_SECRET === '' ||
+        JWT_SECRET === 'changeme_not_secure' ||
+        strlen(JWT_SECRET) < 32
+    );
+    if ($weak) {
+        error_log('[SECURITY] JWT_SECRET absent ou trop faible — arrêt du serveur.');
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Server misconfiguration. Contact administrator.']);
+        }
+        exit;
+    }
+}
 
 // ---- Mailer (PHPMailer SMTP) ----
 define('MAIL_HOST',         $_ENV['MAIL_HOST']         ?? 'smtp.gmail.com');

@@ -53,14 +53,34 @@ try {
     $db = get_db();
 
     // Chercher l'admin par email (requête préparée — zéro concaténation SQL)
-    $stmt = $db->prepare(
-        'SELECT id, name, email, password_hash
-           FROM admins
-          WHERE email = ?
-          LIMIT 1'
-    );
-    $stmt->execute([$email]);
-    $admin = $stmt->fetch();
+    try {
+        $stmt = $db->prepare(
+            'SELECT id, name, email, password_hash, role
+               FROM admins
+              WHERE email = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$email]);
+        $admin = $stmt->fetch();
+    } catch (PDOException $e) {
+        // Si la colonne `role` n'existe pas encore, retenter sans elle (migration non appliquée)
+        if ($e->getCode() === '42S22' || str_contains($e->getMessage(), 'role')) {
+            error_log('[API/admin/login] role column missing, retrying without role');
+            $stmt = $db->prepare(
+                'SELECT id, name, email, password_hash
+                   FROM admins
+                  WHERE email = ?
+                  LIMIT 1'
+            );
+            $stmt->execute([$email]);
+            $admin = $stmt->fetch();
+            if ($admin) {
+                $admin['role'] = 'admin'; // valeur par défaut si la colonne n'existe pas
+            }
+        } else {
+            throw $e;
+        }
+    }
 
     // Vérification en deux étapes distinctes pour éviter les timing attacks :
     //  1. L'admin existe-t-il ?
@@ -76,7 +96,7 @@ try {
     rate_limit_reset('admin_login_' . $client_ip);
 
     // Générer le token JWT
-    $token = generate_token((int) $admin['id'], $admin['email']);
+    $token = generate_token((int) $admin['id'], $admin['email'], $admin['role']);
 
     // Retirer le hash de la réponse
     unset($admin['password_hash']);

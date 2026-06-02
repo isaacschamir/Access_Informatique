@@ -20,18 +20,22 @@ declare(strict_types=1);
 function cors_headers(): void
 {
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    $allowed_origins = [FRONTEND_URL];
 
-    $allowed_origins = array_filter([
-        FRONTEND_URL,
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'http://127.0.0.1:5173',
-    ]);
+    // En développement, autoriser les variantes localhost utiles
+    if (APP_ENV === 'development') {
+        $allowed_origins = array_merge($allowed_origins, [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:5173',
+            'http://localhost',
+            'http://127.0.0.1',
+        ]);
+    }
 
-    if (in_array($origin, $allowed_origins, true)) {
+    if ($origin !== '' && in_array($origin, $allowed_origins, true)) {
         header("Access-Control-Allow-Origin: $origin");
     } else {
-        // Fallback sur l'URL frontend configurée
         header('Access-Control-Allow-Origin: ' . FRONTEND_URL);
     }
 
@@ -39,6 +43,14 @@ function cors_headers(): void
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Admin-Token');
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Max-Age: 86400');  // Cache le preflight 24h
+
+    // En-têtes de sécurité généraux
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: no-referrer-when-downgrade');
+    header("Permissions-Policy: geolocation=()", true);
+    // CSP minimal pour les réponses JSON — évite le chargement de ressources non prévues
+    header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none';");
 
     // Répondre immédiatement aux requêtes preflight OPTIONS
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

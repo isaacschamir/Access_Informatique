@@ -2,7 +2,6 @@
   <div class="accueil">
     <!-- SECTION 1 — SLIDER DES LOGICIELS (visible dès l'ouverture) -->
     <section class="pt-14 pb-0 bg-white">
-
       <!-- Badge centré au-dessus du slider -->
       <!-- <div class="text-center py-16">
         <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-green-500/30 bg-green-500/10 text-green-600 text-xs font-semibold tracking-widest uppercase">
@@ -121,11 +120,15 @@
       <div class="relative max-w-6xl mx-auto px-6 text-center">
         <div class="hero-grid absolute inset-0 pointer-events-none" aria-hidden="true"></div>
         <div class="relative z-10">
-          <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-green-500/30 bg-green-500/10 text-green-600 text-xs font-semibold tracking-widest uppercase mb-10">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+          <div
+            class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-600 text-xs font-semibold tracking-widest uppercase mb-10"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
             Éditeur de logiciels — Côte d'Ivoire
           </div>
-          <h1 class="hero-title text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[0.95] tracking-tight">
+          <h1
+            class="hero-title text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[0.95] tracking-tight"
+          >
             Des logiciels<br />
             <span class="hero-gradient-green">taillés pour vous.</span>
           </h1>
@@ -270,7 +273,9 @@
       ></div>
 
       <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
-        <h2 class="text-2xl sm:text-4xl md:text-6xl font-black text-white tracking-tight leading-tight mb-10">
+        <h2
+          class="text-2xl sm:text-4xl md:text-6xl font-black text-white tracking-tight leading-tight mb-10"
+        >
           Prêt à transformer<br />
           <span class="text-white/90"> votre gestion ? </span>
         </h2>
@@ -326,8 +331,8 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/solutions')
     softwareSlides.value = data.map((s) => ({
-      id:    s.id,
-      name:  s.name,
+      id: s.id,
+      name: s.name,
       image: s.hero_image,
       route: '/solutions/' + s.slug,
     }))
@@ -341,18 +346,18 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/partners')
     partners.value = data.map((p) => ({
-      id:   p.id,
+      id: p.id,
       name: p.name,
       logo: p.logo_url,
-      url:  '#',
+      url: '#',
     }))
   } catch {
     const { listeReferences } = await import('@/data/aboutData')
     partners.value = listeReferences.map((r, i) => ({
-      id:   i + 1,
+      id: i + 1,
       name: r.nom,
       logo: r.logo,
-      url:  '#',
+      url: '#',
     }))
   }
 

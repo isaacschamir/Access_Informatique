@@ -1,3 +1,15 @@
+# Prevent execution of PHP or other server-side scripts in uploads
+<FilesMatch "\.(php|phtml|php3|php4|php5|phps)$">
+    Require all denied
+</FilesMatch>
+
+# Disable directory listing
+Options -Indexes
+
+# Set safe content-type handling
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
 # Sécurité : empêcher l'exécution de PHP dans le dossier uploads/
 # Un attaquant ne peut pas uploader un fichier .php et l'exécuter.
 Options -Indexes -ExecCGI

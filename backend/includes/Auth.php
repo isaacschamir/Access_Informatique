@@ -102,11 +102,12 @@ class JWT
  * @param int    $admin_id ID de l'admin en base
  * @param string $email    Email de l'admin
  */
-function generate_token(int $admin_id, string $email): string
+function generate_token(int $admin_id, string $email, string $role = 'admin'): string
 {
     return JWT::encode([
         'sub'   => $admin_id,
         'email' => $email,
+        'role'  => $role,
         'iat'   => time(),
         'exp'   => time() + JWT_EXPIRY,
     ]);
@@ -164,6 +165,35 @@ function require_auth(): array
         echo json_encode([
             'success' => false,
             'error'   => 'Non autorisé — token manquant ou expiré.',
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    return $payload;
+}
+
+/**
+ * Vérifie qu'un administrateur possède un rôle autorisé.
+ *
+ * @param string|string[] $allowed_roles Rôle ou liste de rôles autorisés
+ * @return array<string, mixed> Payload JWT si le rôle est accepté
+ */
+function require_role(array|string $allowed_roles): array
+{
+    $payload = require_auth();
+    $roles   = is_array($allowed_roles) ? $allowed_roles : [$allowed_roles];
+    $current = $payload['role'] ?? null;
+
+    if (!is_string($current) || !in_array($current, $roles, true)) {
+        if (function_exists('error_response')) {
+            error_response('Accès refusé.', 403);
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Accès refusé.',
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }

@@ -61,6 +61,11 @@ export const solutionsDetail = [
       'Formation et support technique inclus',
     ],
     tags: ['Dossier patient', 'Rendez-vous', 'Facturation', 'Pharmacie', 'Statistiques'],
+    partners: [
+      { id: 1, name: 'Centre Médical Lumière', logo: '/uploads/partners/partner1.png', url: '#' },
+      { id: 2, name: 'Clinique Sainte-Marie', logo: '/uploads/partners/partner2.png', url: '#' },
+      { id: 3, name: 'Hôpital Central', logo: '/uploads/partners/partner3.png', url: '#' },
+    ],
   },
 
   {
@@ -119,6 +124,10 @@ export const solutionsDetail = [
       'Gestion multi-niveaux et multi-cycles',
     ],
     tags: ['Inscriptions', 'Notes', 'Emplois du temps', 'Absences', 'Communication'],
+    partners: [
+      { id: 4, name: 'École Internationale', logo: '/uploads/partners/partner4.png', url: '#' },
+      { id: 5, name: 'Lycée Moderne', logo: '/uploads/partners/partner5.png', url: '#' },
+    ],
   },
 
   {
@@ -176,6 +185,9 @@ export const solutionsDetail = [
       'Export vers Excel, PDF et autres formats',
     ],
     tags: ['Comptabilité', 'OHADA', 'Fiscalité', 'Trésorerie', 'Multi-sociétés'],
+    partners: [
+      { id: 6, name: 'Cabinet KPMG CI', logo: '/uploads/partners/partner6.png', url: '#' },
+    ],
   },
 
   {
@@ -235,6 +247,9 @@ export const solutionsDetail = [
       'Reporting financier détaillé pour les propriétaires',
     ],
     tags: ['Biens', 'Baux', 'Quittancement', 'CRM', 'Comptabilité'],
+    partners: [
+      { id: 7, name: 'Agence Immobilière AB', logo: '/uploads/partners/partner7.png', url: '#' },
+    ],
   },
 
   {
@@ -294,6 +309,9 @@ export const solutionsDetail = [
       'Support dédié aux administrations publiques',
     ],
     tags: ['État civil', 'Taxes', 'Patrimoine', 'Budget', 'Portail citoyen'],
+    partners: [
+      { id: 8, name: "Mairie d'Abidjan", logo: '/uploads/partners/partner8.png', url: '#' },
+    ],
   },
 
   {
@@ -353,6 +371,7 @@ export const solutionsDetail = [
       'Bulletins de paie exportables en PDF',
     ],
     tags: ['Personnel', 'Paie', 'Congés', 'CNPS', 'Recrutement'],
+    partners: [{ id: 9, name: 'Société Alfa', logo: '/uploads/partners/partner9.png', url: '#' }],
   },
 ]
 

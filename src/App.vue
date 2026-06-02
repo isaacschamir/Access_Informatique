@@ -1,7 +1,8 @@
 ﻿<template>
   <div class="min-h-screen flex flex-col bg-white">
     <!-- HEADER / NAVIGATION (masqué sur les routes /admin) -->
-    <nav v-if="!isAdmin"
+    <nav
+      v-if="!isAdmin"
       class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out"
       :class="
         scrolled
@@ -10,7 +11,7 @@
       "
     >
       <!-- Barre verte au dessus du header -->
-      <div class="px-6 py-2 bg-green-600 text-white w-full">
+      <div class="px-6 py-2 bg-blue-500 text-white w-full">
         <div
           class="max-w-7xl mx-auto flex flex-col gap-3 md:flex-row md:items-center md:justify-between text-sm"
         >
@@ -22,11 +23,23 @@
               <span class="hidden sm:inline">Bienvenue chez</span> Access Informatique
             </span>
             <span class="hidden md:inline text-white font-semibold">|</span>
-            <a :href="`mailto:${email}`" class="hidden md:inline text-white hover:text-white/80 transition-colors duration-200">{{ email }}</a>
+            <a
+              :href="`mailto:${email}`"
+              class="hidden md:inline text-white hover:text-white/80 transition-colors duration-200"
+              >{{ email }}</a
+            >
             <span class="hidden md:inline text-white font-semibold">|</span>
-            <a :href="`tel:${phone1.replace(/\s|\(|\)/g, '')}`" class="text-white hover:text-white/80 transition-colors duration-200 text-xs">{{ phone1 }}</a>
+            <a
+              :href="`tel:${phone1.replace(/\s|\(|\)/g, '')}`"
+              class="text-white hover:text-white/80 transition-colors duration-200 text-xs"
+              >{{ phone1 }}</a
+            >
             <span class="hidden sm:inline text-white font-semibold">|</span>
-            <a :href="`tel:${phone2.replace(/\s|\(|\)/g, '')}`" class="hidden sm:inline text-white hover:text-white/80 transition-colors duration-200 text-xs">{{ phone2 }}</a>
+            <a
+              :href="`tel:${phone2.replace(/\s|\(|\)/g, '')}`"
+              class="hidden sm:inline text-white hover:text-white/80 transition-colors duration-200 text-xs"
+              >{{ phone2 }}</a
+            >
           </div>
           <div
             class="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.18em]"
@@ -238,10 +251,7 @@
             <ul class="space-y-3 text-sm">
               <li class="flex items-start gap-2.5">
                 <span class="mt-0.5 text-green-500 flex-shrink-0">✉</span>
-                <a
-                  :href="`mailto:${email}`"
-                  class="hover:text-white transition-colors break-all"
-                >
+                <a :href="`mailto:${email}`" class="hover:text-white transition-colors break-all">
                   {{ email }}
                 </a>
               </li>
@@ -299,12 +309,24 @@ const isAdmin = computed(() => route.path.startsWith('/admin'))
 const contentStore = useContentStore()
 onMounted(() => contentStore.load('global'))
 
-const email  = computed(() => contentStore.get('global', 'header.email',  'info@accessinformatique.com'))
+const email = computed(() =>
+  contentStore.get('global', 'header.email', 'info@accessinformatique.com'),
+)
 const phone1 = computed(() => contentStore.get('global', 'header.phone1', '(+225) 01 01 57 30 54'))
 const phone2 = computed(() => contentStore.get('global', 'header.phone2', '(+225) 07 07 26 18 58'))
-const footerTagline = computed(() => contentStore.get('global', 'footer.tagline', "Éditeur de solutions de gestion sur mesure pour les entreprises, institutions et professionnels de Côte d'Ivoire et d'Afrique."))
-const footerAddress = computed(() => contentStore.get('global', 'footer.address', 'Yopougon Sable, Andokoi, Abidjan, Côte d\'Ivoire'))
-const footerHours   = computed(() => contentStore.get('global', 'footer.hours',   'Lun–Ven : 08h–18h · Sam : 09h–13h'))
+const footerTagline = computed(() =>
+  contentStore.get(
+    'global',
+    'footer.tagline',
+    "Éditeur de solutions de gestion sur mesure pour les entreprises, institutions et professionnels de Côte d'Ivoire et d'Afrique.",
+  ),
+)
+const footerAddress = computed(() =>
+  contentStore.get('global', 'footer.address', "Yopougon Sable, Andokoi, Abidjan, Côte d'Ivoire"),
+)
+const footerHours = computed(() =>
+  contentStore.get('global', 'footer.hours', 'Lun–Ven : 08h–18h · Sam : 09h–13h'),
+)
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 const navLinks = [

@@ -1,0 +1,6 @@
+APP_ENV=development
+DB_HOST=127.0.0.1
+DB_NAME=access_informatique
+DB_USER=root
+DB_PASS=
+JWT_SECRET=une_chaine_très_longue_>_32_caracteres_à_remplacer

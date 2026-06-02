@@ -48,7 +48,7 @@ export default defineConfig({
           if (/^\/api\/(solutions|formations)\/[^/]+\/?$/.test(pathPart)) return path
 
           // Route export CSV → Apache s'en charge via RewriteRule
-          if (/^\/api\/admin\/leads\/export\//.test(pathPart)) return path
+          if (pathPart.startsWith('/api/admin/leads/export/')) return path
 
           // Tout le reste → ajouter .php (endpoint nommé ou wrapper)
           return pathPart.replace(/\/?$/, '') + '.php' + query

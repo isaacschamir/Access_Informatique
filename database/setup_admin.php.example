@@ -8,7 +8,7 @@
  * Puis exécuter depuis la racine du projet :
  *   php database/setup_admin.php
  *   php database/setup_admin.php list
- *   php database/setup_admin.php create --email=... --name=... --password=...
+ *   php database/setup_admin.php create --email=... --name=... --password=... [--role=superadmin|admin|editor]
  *   php database/setup_admin.php password --email=... --password=...
  *   php database/setup_admin.php email --email=... --new-email=...
  *   php database/setup_admin.php name --email=... --name=...
@@ -85,7 +85,7 @@ try {
 function cmd_list(PDO $pdo): void
 {
     $rows = $pdo->query(
-        'SELECT id, name, email, created_at, updated_at FROM admins ORDER BY id ASC'
+        'SELECT id, name, email, role, created_at, updated_at FROM admins ORDER BY id ASC'
     )->fetchAll();
 
     if (empty($rows)) {
@@ -95,20 +95,21 @@ function cmd_list(PDO $pdo): void
     }
 
     echo "\nAdministrateurs (" . count($rows) . ") :\n";
-    echo str_repeat('-', 72) . "\n";
-    printf("  %-4s %-22s %-32s %s\n", 'ID', 'Nom', 'Email', 'Créé le');
-    echo str_repeat('-', 72) . "\n";
+    echo str_repeat('-', 92) . "\n";
+    printf("  %-4s %-22s %-30s %-12s %s\n", 'ID', 'Nom', 'Email', 'Rôle', 'Créé le');
+    echo str_repeat('-', 92) . "\n";
 
     foreach ($rows as $row) {
         printf(
-            "  %-4d %-22s %-32s %s\n",
+            "  %-4d %-22s %-30s %-12s %s\n",
             (int) $row['id'],
             truncate((string) $row['name'], 22),
-            truncate((string) $row['email'], 32),
+            truncate((string) $row['email'], 30),
+            truncate((string) $row['role'], 12),
             substr((string) $row['created_at'], 0, 10)
         );
     }
-    echo str_repeat('-', 72) . "\n\n";
+    echo str_repeat('-', 92) . "\n\n";
 }
 
 function cmd_create(PDO $pdo, array $args): void
@@ -116,6 +117,13 @@ function cmd_create(PDO $pdo, array $args): void
     $email    = prompt_value('Email', $args['email'] ?? null, 'validate_email');
     $name     = prompt_value('Nom complet', $args['name'] ?? null);
     $password = prompt_password('Mot de passe', $args['password'] ?? null);
+    $role     = strtolower(trim($args['role'] ?? ''));
+
+    if ($role !== '') {
+        validate_role($role);
+    } else {
+        $role = has_admins($pdo) ? 'editor' : 'superadmin';
+    }
 
     if (admin_exists_by_email($pdo, $email)) {
         throw new RuntimeException("Un admin existe déjà avec l'email : {$email}");
@@ -123,12 +131,13 @@ function cmd_create(PDO $pdo, array $args): void
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
     $stmt = $pdo->prepare(
-        'INSERT INTO admins (name, email, password_hash) VALUES (?, ?, ?)'
+        'INSERT INTO admins (name, email, password_hash, role) VALUES (?, ?, ?, ?)'
     );
-    $stmt->execute([$name, $email, $hash]);
+    $stmt->execute([$name, $email, $hash, $role]);
 
     echo "\n✓ Administrateur créé (ID " . $pdo->lastInsertId() . ").\n";
     echo "  Email : {$email}\n";
+    echo "  Rôle : {$role}\n";
     echo "  Connexion : /admin/login sur le frontend\n\n";
 }
 
@@ -409,6 +418,22 @@ function validate_password(string $password): void
             'Mot de passe trop court (minimum ' . MIN_PASSWORD_LENGTH . ' caractères).'
         );
     }
+}
+
+function validate_role(string $role): void
+{
+    $allowed = ['superadmin', 'admin', 'editor'];
+    if (!in_array($role, $allowed, true)) {
+        throw new InvalidArgumentException(
+            'Rôle invalide. Choisissez : superadmin, admin, editor.'
+        );
+    }
+}
+
+function has_admins(PDO $pdo): bool
+{
+    $count = (int) $pdo->query('SELECT COUNT(*) FROM admins')->fetchColumn();
+    return $count > 0;
 }
 
 function admin_exists_by_email(PDO $pdo, string $email): bool

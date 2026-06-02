@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div v-if="solution" class="solution-detail-page">
     <!-- HERO SECTION -->
     <section class="relative pt-20 pb-0 overflow-hidden bg-white">
@@ -42,31 +42,45 @@
             <span
               class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-10 border border-green-500/30"
               style="background: #f0faf4; color: #166030"
+              ><span class="w-1.5 h-1.5 rounded-full" style="background: #166030"></span
+              >{{ solution.category }}</span
             >
-              <span class="w-1.5 h-1.5 rounded-full" style="background: #166030"></span>
-              {{ solution.category }}
-            </span>
 
-            <!-- Nom -->
             <h1
               class="text-5xl md:text-6xl font-black text-slate-900 leading-tight tracking-tight mb-3"
             >
               {{ solution.name }}
             </h1>
-
-            <!-- Tagline -->
             <p class="text-lg md:text-xl font-semibold mb-8" style="color: #166030">
               {{ solution.tagline }}
             </p>
-
-            <!-- Description courte -->
             <p class="text-slate-500 text-base leading-relaxed mb-10">
               {{ solution.shortDescription }}
             </p>
+            <!-- Modules intégrés dans la boîte de droite -->
+            <div>
+              <h4 class="text-sm font-bold text-slate-900 mb-3">Modules</h4>
+              <div class="space-y-3">
+                <div
+                  v-for="(module, idx) in solution.modules"
+                  :key="module.title"
+                  class="flex gap-3 items-start"
+                >
+                  <div
+                    class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white"
+                    :style="{ background: solution.accentColor || '#16a34a' }"
+                  >
+                    {{ idx + 1 }}
+                  </div>
+                  <div class="flex-1">
+                    <div class="text-sm font-bold text-slate-900">{{ module.title }}</div>
+                    <div class="text-xs text-slate-500 mt-1">{{ module.description }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <!-- CTAs principaux -->
-            <div class="flex flex-col sm:flex-row gap-4">
-              <!-- Bouton Télécharger présentation -->
+            <!-- <div class="flex flex-col sm:flex-row gap-4">
               <a
                 :href="solution.brochureUrl"
                 download
@@ -89,7 +103,6 @@
                 Télécharger la présentation
               </a>
 
-              <!-- Bouton Voir la démo -->
               <a
                 :href="solution.demoUrl"
                 target="_blank"
@@ -113,18 +126,16 @@
                 </svg>
                 Voir la démo en ligne
               </a>
-            </div>
+            </div> -->
 
-            <!-- Tags -->
-            <div class="flex flex-wrap gap-2 mt-8">
+            <!-- <div class="flex flex-wrap gap-2 mt-8">
               <span
                 v-for="tag in solution.tags"
                 :key="tag"
                 class="px-3 py-1 rounded-lg text-xs font-medium bg-slate-50 text-slate-500 border border-slate-100"
+                >{{ tag }}</span
               >
-                {{ tag }}
-              </span>
-            </div>
+            </div> -->
           </div>
 
           <!-- Colonne droite : image hero -->
@@ -156,21 +167,53 @@
       </div>
     </section>
 
-    <!-- BARRE DE STATS -->
-    <section class="py-16 bg-slate-50 border-y border-slate-100">
+    <!-- PARTENAIRES LIÉS / BARRE -->
+    <section class="py-10 bg-slate-50 border-y border-slate-100">
       <div class="max-w-5xl mx-auto px-6">
-        <div class="grid grid-cols-3 gap-6 text-center divide-x divide-slate-200">
-          <div v-for="stat in solution.stats" :key="stat.label" class="px-4">
-            <p class="text-3xl md:text-4xl font-black" style="color: #166030">
-              {{ stat.value }}
-            </p>
-            <p class="text-sm text-slate-500 mt-1 font-medium">{{ stat.label }}</p>
+        <h3 class="text-sm font-bold text-slate-900 mb-4">Ils utilisent cette solution</h3>
+        <div class="relative">
+          <button
+            v-if="showArrows"
+            @click.prevent="scrollPrev"
+            class="carousel-arrow left absolute left-0 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white shadow-md hover:bg-slate-50"
+            aria-label="Précédent"
+          >
+            ‹
+          </button>
+
+          <div
+            ref="partnersTrack"
+            class="partners-track-container flex gap-6 items-center overflow-x-auto no-scrollbar py-2"
+          >
+            <template v-if="partners && partners.length">
+              <div
+                v-for="p in partners"
+                :key="p.id"
+                class="partner-logo flex-shrink-0 flex items-center justify-center w-36 h-20 rounded-2xl border border-slate-100 bg-white hover:border-green-200 hover:bg-green-50 transition-all duration-200 px-3"
+              >
+                <a :href="p.url" target="_blank" rel="noopener noreferrer">
+                  <img :src="p.logo" :alt="p.name" class="max-h-16 max-w-full object-contain" />
+                </a>
+              </div>
+            </template>
+            <div v-else class="text-slate-500">
+              Aucun partenaire répertorié pour cette solution.
+            </div>
           </div>
+
+          <button
+            v-if="showArrows"
+            @click.prevent="scrollNext"
+            class="carousel-arrow right absolute right-0 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white shadow-md hover:bg-slate-50"
+            aria-label="Suivant"
+          >
+            ›
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- DESCRIPTION + AVANTAGES -->
+    <!-- DESCRIPTION + AVANTAGES (modules intégrés dans la boîte de droite) -->
     <section class="py-14 bg-white">
       <div class="max-w-7xl mx-auto px-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
@@ -181,8 +224,7 @@
             <h2
               class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-10 leading-tight"
             >
-              Pourquoi choisir<br />
-              <span style="color: #166030">{{ solution.name }} ?</span>
+              Pourquoi choisir<br /><span style="color: #166030">{{ solution.name }} ?</span>
             </h2>
             <p class="text-slate-600 leading-relaxed text-base mb-8">
               {{ solution.fullDescription }}
@@ -191,8 +233,7 @@
               to="/contact"
               class="inline-flex items-center gap-2 font-semibold text-sm transition-all hover:gap-3"
               style="color: #166030"
-            >
-              Parler à un expert
+              >Parler à un expert
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
@@ -205,12 +246,12 @@
           </div>
 
           <div class="rounded-2xl p-8 border" style="background: #f0faf4; border-color: #16603022">
-            <h3 class="text-lg font-black text-slate-900 mb-10">✦ Les points forts</h3>
-            <ul class="space-y-5">
+            <h3 class="text-lg font-black text-slate-900 mb-6">✦ Les points forts</h3>
+            <ul class="space-y-4 mb-6">
               <li
                 v-for="advantage in solution.advantages"
                 :key="advantage"
-                class="flex items-start gap-4"
+                class="flex items-start gap-3"
               >
                 <span
                   class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -235,44 +276,30 @@
                 }}</span>
               </li>
             </ul>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- GRILLE DES MODULES -->
-    <section class="py-14 bg-slate-50">
-      <div class="max-w-7xl mx-auto px-6">
-        <div class="text-center mb-8">
-          <p class="text-xs font-bold tracking-[0.2em] uppercase mb-3" style="color: #166030">
-            Fonctionnalités
-          </p>
-          <h2 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-            Les modules de {{ solution.name }}
-          </h2>
-          <p class="text-slate-500 mt-4 max-w-lg mx-auto text-base">
-            Une suite complète de fonctionnalités pensées pour votre secteur d'activité.
-          </p>
-        </div>
+            <hr class="border-slate-100 my-4" />
 
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div
-            v-for="(module, index) in solution.modules"
-            :key="module.title"
-            class="module-card group bg-white rounded-2xl p-7 border border-slate-100 hover:border-transparent hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col"
-          >
-            <div
-              class="w-11 h-11 rounded-xl flex items-center justify-center mb-8 text-sm font-black flex-shrink-0 transition-transform group-hover:scale-110"
-              style="background: #f0faf4; color: #166030"
-            >
-              {{ String(index + 1).padStart(2, '0') }}
-            </div>
-            <h3 class="text-base font-bold text-slate-900 mb-2">{{ module.title }}</h3>
-            <p class="text-slate-500 text-sm leading-relaxed flex-grow">{{ module.description }}</p>
-            <div
-              class="mt-5 h-0.5 w-0 group-hover:w-full rounded-full transition-all duration-400"
-              style="background: #166030"
-            ></div>
+            <!-- <div>
+              <h4 class="text-sm font-bold text-slate-900 mb-3">Modules</h4>
+              <div class="space-y-3">
+                <div
+                  v-for="(module, idx) in solution.modules"
+                  :key="module.title"
+                  class="flex gap-3 items-start"
+                >
+                  <div
+                    class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white"
+                    :style="{ background: solution.accentColor || '#16a34a' }"
+                  >
+                    {{ idx + 1 }}
+                  </div>
+                  <div class="flex-1">
+                    <div class="text-sm font-bold text-slate-900">{{ module.title }}</div>
+                    <div class="text-xs text-slate-500 mt-1">{{ module.description }}</div>
+                  </div>
+                </div>
+              </div>
+            </div> -->
           </div>
         </div>
       </div>
@@ -297,9 +324,10 @@
       ></div>
 
       <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
-        <h2 class="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-10">
-          Prêt à démarrer<br />
-          <span class="text-white/80">avec {{ solution.name }} ?</span>
+        <h2
+          class="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-10"
+        >
+          Prêt à démarrer<br /><span class="text-white/80">avec {{ solution.name }} ?</span>
         </h2>
         <p class="text-white/75 text-lg max-w-xl mx-auto mb-10">
           Téléchargez notre documentation ou contactez notre équipe pour une démonstration
@@ -355,9 +383,8 @@
           <router-link
             to="/contact"
             class="inline-flex items-center justify-center px-10 py-4 rounded-xl border border-white/25 hover:border-white/50 text-white/80 hover:text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
+            >Nous contacter</router-link
           >
-            Nous contacter
-          </router-link>
         </div>
       </div>
     </section>
@@ -375,43 +402,61 @@
       to="/solutions"
       class="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold transition-all duration-200 hover:-translate-y-0.5 shadow-lg shadow-green-600/25"
       style="background: #166030; color: white"
+      >← Retour aux solutions</router-link
     >
-      ← Retour aux solutions
-    </router-link>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/services/api'
 
-const route    = useRoute()
+const route = useRoute()
 const solution = ref(null)
+const partners = ref([])
+const partnersTrack = ref(null)
+const showArrows = ref(false)
 const isLoading = ref(true)
-const error     = ref(null)
+const error = ref(null)
 
 async function fetchSolution(slug) {
   isLoading.value = true
-  error.value     = null
+  error.value = null
   try {
     const { data } = await api.get(`/solutions/${slug}`)
-    // Transformer snake_case → camelCase pour garder la compatibilité du template
     solution.value = {
       ...data,
-      heroImage:        data.hero_image,
+      heroImage: data.hero_image,
       shortDescription: data.short_description,
-      fullDescription:  data.full_description,
-      brochureUrl:      data.brochure_url,
-      demoUrl:          data.demo_url,
-      accentColor:      data.accent_color,
+      fullDescription: data.full_description,
+      brochureUrl: data.brochure_url,
+      demoUrl: data.demo_url,
+      accentColor: data.accent_color,
       accentColorLight: data.accent_color_light,
     }
+
+    // prefer partners attached to the solution, otherwise fetch global partners
+    if (solution.value.partners && solution.value.partners.length) {
+      partners.value = solution.value.partners
+    } else {
+      try {
+        const { data: p } = await api.get('/partners')
+        partners.value = p.map((x) => ({
+          id: x.id,
+          name: x.name,
+          logo: x.logo_url,
+          url: x.url || '#',
+        }))
+      } catch {
+        partners.value = []
+      }
+    }
   } catch (e) {
-    // Fallback sur les données locales si l'API est indisponible
     try {
       const { getSolutionBySlug } = await import('@/data/solutionsDetailData')
       solution.value = getSolutionBySlug(slug)
+      partners.value = solution.value?.partners || []
     } catch {
       error.value = 'Solution introuvable.'
       solution.value = null
@@ -421,10 +466,47 @@ async function fetchSolution(slug) {
   }
 }
 
+function updateArrows() {
+  const el = partnersTrack.value
+  if (!el) return
+  showArrows.value = el.scrollWidth > el.clientWidth + 4
+}
+
+function scrollByAmount(amount) {
+  const el = partnersTrack.value
+  if (!el) return
+  el.scrollBy({ left: amount, behavior: 'smooth' })
+}
+
+function scrollNext() {
+  const el = partnersTrack.value
+  if (!el) return
+  scrollByAmount(Math.round(el.clientWidth * 0.7))
+}
+
+function scrollPrev() {
+  const el = partnersTrack.value
+  if (!el) return
+  scrollByAmount(-Math.round(el.clientWidth * 0.7))
+}
+
 onMounted(() => fetchSolution(route.params.slug))
 
-// Recharge si le slug change (navigation entre solutions)
-watch(() => route.params.slug, (newSlug) => { if (newSlug) fetchSolution(newSlug) })
+onMounted(() => {
+  window.addEventListener('resize', updateArrows)
+})
+
+watch(
+  () => route.params.slug,
+  (newSlug) => {
+    if (newSlug) fetchSolution(newSlug)
+  },
+)
+
+watch(partners, async () => {
+  await nextTick()
+  updateArrows()
+})
 </script>
 
 <style scoped>
@@ -482,5 +564,27 @@ watch(() => route.params.slug, (newSlug) => { if (newSlug) fetchSolution(newSlug
   .hero-grid {
     background-size: 40px 40px;
   }
+}
+
+/* Carousel partners */
+.partners-track-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.carousel-arrow {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
 }
 </style>

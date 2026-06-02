@@ -50,3 +50,6 @@ backend/uploads/formations/
 # ── Script admin à usage unique ──────────────────────────────
 # Supprimer après exécution : php database/setup_admin.php
 database/setup_admin.php
+_local_archive/
+vendor/
+.env
