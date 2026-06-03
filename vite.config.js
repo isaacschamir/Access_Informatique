@@ -6,14 +6,12 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    vue(),
-    tailwindcss(),
-  ],
+  base: '/Access_Informatique_2/',
+  plugins: [vue(), tailwindcss()],
 
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
 
@@ -37,9 +35,9 @@ export default defineConfig({
         //   - Routes avec slug  : /api/solutions/solumed
         //   - Route export CSV  : /api/admin/leads/export/contact
         rewrite: (path) => {
-          const qi       = path.indexOf('?')
+          const qi = path.indexOf('?')
           const pathPart = qi >= 0 ? path.slice(0, qi) : path
-          const query    = qi >= 0 ? path.slice(qi)    : ''
+          const query = qi >= 0 ? path.slice(qi) : ''
 
           // Déjà une extension → ne pas toucher
           if (/\.\w+$/.test(pathPart)) return path
@@ -53,7 +51,7 @@ export default defineConfig({
           // Tout le reste → ajouter .php (endpoint nommé ou wrapper)
           return pathPart.replace(/\/?$/, '') + '.php' + query
         },
-      }
-    }
-  }
+      },
+    },
+  },
 })

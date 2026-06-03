@@ -62,7 +62,12 @@ const router = createRouter({
           component: AdminLeadsInscriptions,
         },
         { path: 'partners', name: 'admin-partners', component: AdminPartners },
-        { path: 'users', name: 'admin-users', component: AdminUsers },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: AdminUsers,
+          meta: { roles: ['admin', 'superadmin'] },
+        },
       ],
     },
   ],
@@ -76,6 +81,15 @@ router.beforeEach((to) => {
   if (!token) {
     return { name: 'admin-login', query: { redirect: to.fullPath } }
   }
+
+  const allowedRoles = to.meta.roles
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+    const adminUser = JSON.parse(localStorage.getItem('admin_user') || 'null')
+    if (!adminUser || !allowedRoles.includes(adminUser.role)) {
+      return { name: 'admin-dashboard' }
+    }
+  }
+
   return true
 })
 

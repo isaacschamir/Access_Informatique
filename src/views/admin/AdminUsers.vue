@@ -4,7 +4,11 @@
       <div>
         <h1 class="text-2xl font-bold text-slate-900">Gestion des administrateurs</h1>
         <p class="text-sm text-slate-600">
-          Créer, modifier et supprimer des comptes admin (superadmin only).
+          {{
+            isSuperAdmin
+              ? 'Créer, modifier, supprimer et gérer les rôles des admins.'
+              : 'Voir tous les admins et créer uniquement des éditeurs.'
+          }}
         </p>
       </div>
       <button
@@ -42,13 +46,24 @@
                 <td class="px-3 py-3 capitalize">{{ user.role }}</td>
                 <td class="px-3 py-3">{{ formatDate(user.created_at) }}</td>
                 <td class="px-3 py-3">
-                  <button
-                    @click="deleteAdmin(user.id)"
-                    class="rounded-xl border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                    :disabled="deletingId === user.id"
-                  >
-                    {{ deletingId === user.id ? 'Suppression…' : 'Supprimer' }}
-                  </button>
+                  <template v-if="isSuperAdmin">
+                    <button
+                      @click="startEdit(user)"
+                      class="mr-2 rounded-xl border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      Modifier
+                    </button>
+                    <button
+                      @click="deleteAdmin(user.id)"
+                      class="rounded-xl border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                      :disabled="deletingId === user.id"
+                    >
+                      {{ deletingId === user.id ? 'Suppression…' : 'Supprimer' }}
+                    </button>
+                  </template>
+                  <template v-else>
+                    <span class="text-xs text-slate-400">Actions réservées au superadmin</span>
+                  </template>
                 </td>
               </tr>
             </tbody>
@@ -89,7 +104,14 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700">Rôle</label>
+            <div
+              v-if="isAdmin"
+              class="mt-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+            >
+              editor
+            </div>
             <select
+              v-else
               v-model="form.role"
               class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
             >
@@ -103,7 +125,23 @@
               type="submit"
               class="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700"
             >
-              {{ creating ? 'Création…' : 'Créer' }}
+              {{
+                creating
+                  ? editingId
+                    ? 'Mise à jour…'
+                    : 'Enregistrement…'
+                  : editingId
+                    ? 'Mettre à jour'
+                    : 'Créer'
+              }}
+            </button>
+            <button
+              v-if="editingId"
+              type="button"
+              @click="resetForm"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Annuler
             </button>
             <span v-if="message" class="text-sm text-slate-500">{{ message }}</span>
           </div>
@@ -114,13 +152,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import api from '@/services/api'
+import { useAdminStore } from '@/stores/admin'
+
+const adminStore = useAdminStore()
+const isSuperAdmin = computed(() => adminStore.admin?.role === 'superadmin')
+const isAdmin = computed(() => adminStore.admin?.role === 'admin')
 
 const admins = ref([])
 const loading = ref(false)
 const creating = ref(false)
 const deletingId = ref(null)
+const editingId = ref(null)
 const message = ref('')
 
 const form = ref({
@@ -148,21 +192,47 @@ async function loadAdmins() {
   }
 }
 
+function resetForm() {
+  form.value.name = ''
+  form.value.email = ''
+  form.value.password = ''
+  form.value.role = 'editor'
+  editingId.value = null
+}
+
+function startEdit(user) {
+  editingId.value = user.id
+  form.value.name = user.name
+  form.value.email = user.email
+  form.value.password = ''
+  form.value.role = user.role
+  message.value = ''
+}
+
 async function createAdmin() {
   creating.value = true
   message.value = ''
   try {
-    await api.post('/admin/admins', {
+    const payload = {
       name: form.value.name,
       email: form.value.email,
       password: form.value.password,
       role: form.value.role,
-    })
-    message.value = 'Administrateur créé.'
-    form.value.name = ''
-    form.value.email = ''
-    form.value.password = ''
-    form.value.role = 'editor'
+    }
+
+    if (isAdmin.value) {
+      payload.role = 'editor'
+    }
+
+    if (editingId.value) {
+      await api.put(`/admin/admins?id=${editingId.value}`, payload)
+      message.value = 'Administrateur mis à jour.'
+    } else {
+      await api.post('/admin/admins', payload)
+      message.value = 'Administrateur créé.'
+    }
+
+    resetForm()
     await loadAdmins()
   } catch (error) {
     message.value = error.response?.data?.error || 'Erreur lors de la création.'

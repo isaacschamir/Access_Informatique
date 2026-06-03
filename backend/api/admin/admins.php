@@ -5,7 +5,11 @@
  * PUT    /api/admin/admins?id=1    — modifie un administrateur
  * DELETE /api/admin/admins?id=1    — supprime un administrateur
  * ---------------------------------------------------------------
- * Endpoint protégé : JWT requis + rôle superadmin.
+ * Endpoint protégé : JWT requis.
+ *   - GET  /admin/admins : superadmin ou admin
+ *   - POST /admin/admins : superadmin ou admin (admin peut créer uniquement editor)
+ *   - PUT  /admin/admins?id=1 : superadmin seulement
+ *   - DELETE /admin/admins?id=1 : superadmin seulement
  * ---------------------------------------------------------------
  */
 
@@ -23,20 +27,23 @@ if (!in_array($method, ['GET', 'POST', 'PUT', 'DELETE'], true)) {
     error_response('Méthode non autorisée.', 405);
 }
 
-$admin = require_role('superadmin');
+$admin = require_auth();
 $db = get_db();
 
 try {
     switch ($method) {
         case 'GET':
+            require_role(['superadmin', 'admin']);
             $rows = $db->query(
                 'SELECT id, name, email, role, created_at, updated_at
                    FROM admins
                   ORDER BY id ASC'
             )->fetchAll();
             json_response($rows);
+            break;
 
         case 'POST':
+            require_role(['superadmin', 'admin']);
             $data = get_json_body();
             $name  = trim($data['name'] ?? '');
             $email = trim($data['email'] ?? '');
@@ -54,6 +61,9 @@ try {
             }
             if (!in_array($role, ['superadmin', 'admin', 'editor'], true)) {
                 error_response('Rôle invalide. Choisissez superadmin, admin ou editor.', 422);
+            }
+            if ($admin['role'] === 'admin' && $role !== 'editor') {
+                error_response('Les administrateurs peuvent uniquement créer des éditeurs.', 403);
             }
 
             $stmt = $db->prepare('SELECT 1 FROM admins WHERE email = ? LIMIT 1');
@@ -74,8 +84,10 @@ try {
                 'message' => 'Administrateur créé.',
                 'id'      => (int) $db->lastInsertId(),
             ], 201);
+            break;
 
         case 'PUT':
+            require_role('superadmin');
             $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
             if ($id <= 0) {
                 error_response('Paramètre "id" manquant ou invalide.', 422);
@@ -132,8 +144,10 @@ try {
                ->execute($params);
 
             json_response(['success' => true, 'message' => 'Administrateur mis à jour.']);
+            break;
 
         case 'DELETE':
+            require_role('superadmin');
             $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
             if ($id <= 0) {
                 error_response('Paramètre "id" manquant ou invalide.', 422);

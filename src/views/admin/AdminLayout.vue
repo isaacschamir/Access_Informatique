@@ -205,10 +205,15 @@ const navLinks = [
   { to: '/admin/solutions', label: 'Solutions', icon: ICON_BOX },
   { to: '/admin/formations', label: 'Formations', icon: ICON_BOOK },
   { to: '/admin/partners', label: 'Partenaires', icon: ICON_IMG },
-  { to: '/admin/users', label: 'Admins', icon: ICON_USER, roles: ['superadmin'] },
+  { to: '/admin/users', label: 'Admins', icon: ICON_USER, roles: ['admin', 'superadmin'] },
 ]
 
-const filteredNavLinks = computed(() => navLinks)
+const filteredNavLinks = computed(() => {
+  return navLinks.filter((link) => {
+    if (!link.roles) return true
+    return link.roles.includes(adminStore.admin?.role)
+  })
+})
 
 const leadLinks = [
   { to: '/admin/leads/contact', label: 'Messages contact', icon: ICON_MAIL, badge: 'contacts_new' },

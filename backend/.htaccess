@@ -6,7 +6,9 @@ Options -Indexes -MultiViews
 
 # ---- Moteur de réécriture ----
 RewriteEngine On
-RewriteBase /Access_Informatique/backend/
+# Ajuster ce chemin selon la structure du site sur PlanetHoster.
+# Pour un sous-dossier "Access_Informatique_2" :
+RewriteBase /Access_Informatique_2/backend/
 
 # ---- Transmettre Authorization à PHP (mod_fcgid le bloque sinon) ----
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
